@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: theia-on-render
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    buildCommand: echo "Building with Docker"
+    startCommand: npm start
