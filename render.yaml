@@ -5,6 +5,8 @@ services:
     dockerfilePath: ./Dockerfile
     plan: starter
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: PORT
         value: 3000
-    startCommand: echo "Using Docker CMD"
+    # DockerのCMDを使用するため、startCommandは指定しない
