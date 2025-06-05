@@ -5,6 +5,7 @@ FROM quay.io/zowe-explorer/theia:latest
 USER root
 RUN apt-get update && apt-get install -y \
     curl \
+    util-linux \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.jsが含まれているか確認、なければインストール
