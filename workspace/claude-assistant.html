@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Assistant for IDE</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+        
+        .api-key-section {
+            background-color: #34495e;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .api-key-section label {
+            color: white;
+            font-size: 14px;
+        }
+        
+        .api-key-section input {
+            flex: 1;
+            min-width: 300px;
+            padding: 8px 12px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #2c3e50;
+            color: white;
+            font-family: monospace;
+        }
+        
+        .api-key-section button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .api-key-section button:hover {
+            background-color: #2980b9;
+        }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+        
+        .sidebar-section {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .sidebar-section h3 {
+            padding: 15px;
+            background-color: #f8f9fa;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .sidebar-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+        
+        .sidebar-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .sidebar-item.active {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            font-weight: 500;
+        }
+        
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        
+        .message-user .message-avatar {
+            background-color: #3498db;
+        }
+        
+        .message-assistant .message-avatar {
+            background-color: #9b59b6;
+        }
+        
+        .message-content {
+            flex: 1;
+        }
+        
+        .message-role {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #666;
+        }
+        
+        .message-text {
+            background-color: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        
+        .message-text pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message-text code {
+            background-color: #e8e8e8;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        
+        .message-text pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .input-container {
+            border-top: 1px solid #ddd;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .input-wrapper textarea {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        .input-wrapper button {
+            align-self: flex-end;
+            padding: 12px 24px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .input-wrapper button:hover {
+            background-color: #229954;
+        }
+        
+        .input-wrapper button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .code-editor {
+            display: none;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .code-editor textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            background-color: white;
+        }
+        
+        .code-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .copy-button {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .copy-button:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Claude Assistant for IDE</h1>
+    </div>
+    
+    <div class="api-key-section">
+        <label for="apiKey">Anthropic API Key:</label>
+        <input type="password" id="apiKey" placeholder="sk-ant-api03-..." />
+        <button onclick="saveApiKey()">保存</button>
+        <button onclick="testApiKey()">接続テスト</button>
+        <span id="apiStatus" style="color: #ecf0f1; margin-left: 10px;"></span>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>🎯 クイックアクション</h3>
+                <div class="sidebar-item active" onclick="switchMode('chat')">💬 チャット</div>
+                <div class="sidebar-item" onclick="switchMode('analyze')">🔍 コード分析</div>
+                <div class="sidebar-item" onclick="switchMode('generate')">✨ コード生成</div>
+                <div class="sidebar-item" onclick="switchMode('refactor')">🔧 リファクタリング</div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>📝 テンプレート</h3>
+                <div class="sidebar-item" onclick="useTemplate('explain')">コードの説明</div>
+                <div class="sidebar-item" onclick="useTemplate('debug')">デバッグ支援</div>
+                <div class="sidebar-item" onclick="useTemplate('optimize')">最適化提案</div>
+                <div class="sidebar-item" onclick="useTemplate('test')">テスト作成</div>
+                <div class="sidebar-item" onclick="useTemplate('docs')">ドキュメント生成</div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>⚙️ 設定</h3>
+                <div class="sidebar-item" onclick="showSettings()">モデル選択</div>
+                <div class="sidebar-item" onclick="clearChat()">チャットクリア</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="chatMode" class="mode-content">
+                <div class="chat-container" id="chatContainer"></div>
+                
+                <div class="input-container">
+                    <div id="statusMessage"></div>
+                    <div class="input-wrapper">
+                        <textarea id="userInput" placeholder="コードについて質問してください..." onkeydown="handleKeyPress(event)"></textarea>
+                        <button onclick="sendMessage()" id="sendButton">送信</button>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">
+                        Shift+Enter で改行、Enter で送信
+                    </div>
+                </div>
+            </div>
+            
+            <div id="codeEditor" class="code-editor">
+                <h3 id="editorTitle">コードを入力</h3>
+                <textarea id="codeInput" placeholder="分析したいコードを貼り付けてください..."></textarea>
+                <div class="code-actions">
+                    <select id="languageSelect">
+                        <option value="">言語を自動検出</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C++</option>
+                        <option value="go">Go</option>
+                        <option value="rust">Rust</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="php">PHP</option>
+                        <option value="ruby">Ruby</option>
+                    </select>
+                    <button onclick="processCode()" id="processButton">実行</button>
+                    <button onclick="switchMode('chat')">チャットに戻る</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentMode = 'chat';
+        let chatHistory = [];
+        let currentModel = 'claude-3-sonnet-20240229';
+        
+        // APIキーの保存と読み込み
+        function loadApiKey() {
+            const savedKey = localStorage.getItem('anthropic_api_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+                showStatus('APIキーが読み込まれました', 'success');
+            }
+        }
+        
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (apiKey) {
+                localStorage.setItem('anthropic_api_key', apiKey);
+                showStatus('APIキーが保存されました', 'success');
+            }
+        }
+        
+        function getApiKey() {
+            return document.getElementById('apiKey').value;
+        }
+        
+        // APIキーのテスト
+        async function testApiKey() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showStatus('APIキーを入力してください', 'error');
+                return;
+            }
+            
+            try {
+                document.getElementById('apiStatus').innerHTML = '<div class="loading"></div>';
+                
+                const response = await fetch('/api/claude/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        messages: [{ role: 'user', content: 'Hello' }],
+                        max_tokens: 10
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('apiStatus').textContent = '✅ 接続成功';
+                    document.getElementById('apiStatus').style.color = '#27ae60';
+                } else {
+                    const error = await response.json();
+                    document.getElementById('apiStatus').textContent = '❌ 接続失敗';
+                    document.getElementById('apiStatus').style.color = '#e74c3c';
+                    showStatus(`エラー: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                document.getElementById('apiStatus').textContent = '❌ 接続エラー';
+                document.getElementById('apiStatus').style.color = '#e74c3c';
+                showStatus(`エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // ステータス表示
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message status-${type}`;
+            
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = '';
+            }, 5000);
+        }
+        
+        // モード切り替え
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // サイドバーのアクティブ状態を更新
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // コンテンツの表示切り替え
+            if (mode === 'chat') {
+                document.getElementById('chatMode').style.display = 'block';
+                document.getElementById('codeEditor').style.display = 'none';
+            } else {
+                document.getElementById('chatMode').style.display = 'none';
+                document.getElementById('codeEditor').style.display = 'block';
+                
+                // エディタのタイトルを更新
+                const titles = {
+                    'analyze': 'コードを分析',
+                    'generate': 'コードを生成',
+                    'refactor': 'コードをリファクタリング'
+                };
+                document.getElementById('editorTitle').textContent = titles[mode] || 'コードを入力';
+            }
+        }
+        
+        // メッセージ送信
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            if (!getApiKey()) {
+                showStatus('APIキーを設定してください', 'error');
+                return;
+            }
+            
+            // ユーザーメッセージを追加
+            addMessage('user', message);
+            input.value = '';
+            
+            // ボタンを無効化
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                const response = await fetch('/api/claude/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        apiKey: getApiKey(),
+                        messages: chatHistory,
+                        model: currentModel,
+                        max_tokens: 4096
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const assistantMessage = data.content[0].text;
+                    addMessage('assistant', assistantMessage);
+                } else {
+                    const error = await response.json();
+                    showStatus(`エラー: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`エラー: ${error.message}`, 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = '送信';
+            }
+        }
+        
+        // メッセージ追加
+        function addMessage(role, content) {
+            chatHistory.push({ role, content });
+            
+            const container = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${role}`;
+            
+            const avatar = role === 'user' ? '👤' : '🤖';
+            const roleText = role === 'user' ? 'あなた' : 'Claude';
+            
+            // コードブロックの処理
+            content = content.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+                const id = 'code-' + Date.now() + Math.random();
+                setTimeout(() => {
+                    const button = document.getElementById('copy-' + id);
+                    if (button) {
+                        button.onclick = () => copyCode(code.trim());
+                    }
+                }, 0);
+                return `<pre><code class="${lang}">${escapeHtml(code.trim())}</code><button id="copy-${id}" class="copy-button">コピー</button></pre>`;
+            });
+            
+            // インラインコードの処理
+            content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">
+                    <div class="message-role">${roleText}</div>
+                    <div class="message-text">${content}</div>
+                </div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // HTMLエスケープ
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // コードコピー
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                showStatus('コードをコピーしました', 'success');
+            });
+        }
+        
+        // コード処理
+        async function processCode() {
+            const code = document.getElementById('codeInput').value;
+            const language = document.getElementById('languageSelect').value;
+            
+            if (!code) {
+                showStatus('コードを入力してください', 'error');
+                return;
+            }
+            
+            if (!getApiKey()) {
+                showStatus('APIキーを設定してください', 'error');
+                return;
+            }
+            
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = true;
+            processButton.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                let endpoint, body;
+                
+                if (currentMode === 'analyze') {
+                    endpoint = '/api/claude/analyze-code';
+                    body = { apiKey: getApiKey(), code, language };
+                } else if (currentMode === 'generate') {
+                    endpoint = '/api/claude/generate-code';
+                    body = { apiKey: getApiKey(), description: code, language };
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // チャットモードに切り替えて結果を表示
+                    switchMode('chat');
+                    addMessage('user', currentMode === 'analyze' ? `コードを分析してください:\n\`\`\`${language}\n${code}\n\`\`\`` : code);
+                    addMessage('assistant', data.content[0].text);
+                    
+                    // エディタをクリア
+                    document.getElementById('codeInput').value = '';
+                } else {
+                    const error = await response.json();
+                    showStatus(`エラー: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`エラー: ${error.message}`, 'error');
+            } finally {
+                processButton.disabled = false;
+                processButton.textContent = '実行';
+            }
+        }
+        
+        // テンプレート使用
+        function useTemplate(template) {
+            const templates = {
+                'explain': 'このコードを詳しく説明してください。各部分の役割と動作を教えてください。',
+                'debug': 'このコードのバグを見つけて修正方法を提案してください。',
+                'optimize': 'このコードのパフォーマンスを最適化する方法を提案してください。',
+                'test': 'このコードに対する単体テストを作成してください。',
+                'docs': 'このコードのドキュメントを生成してください。JSDocまたは適切な形式で。'
+            };
+            
+            document.getElementById('userInput').value = templates[template] || '';
+            document.getElementById('userInput').focus();
+        }
+        
+        // チャットクリア
+        function clearChat() {
+            if (confirm('チャット履歴をクリアしますか？')) {
+                chatHistory = [];
+                document.getElementById('chatContainer').innerHTML = '';
+                showStatus('チャット履歴をクリアしました', 'success');
+            }
+        }
+        
+        // キーボードショートカット
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadApiKey();
+            document.getElementById('userInput').focus();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Integration</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .api-key-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+        }
+        input[type="password"], input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .file-browser {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .file-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .file-item:hover {
+            background-color: #f0f0f0;
+        }
+        .file-item.selected {
+            background-color: #e3f2fd;
+        }
+        .file-icon {
+            width: 16px;
+            height: 16px;
+        }
+        .editor-section {
+            margin: 20px 0;
+        }
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 4px 4px 0 0;
+        }
+        #editor {
+            width: 100%;
+            min-height: 400px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-top: none;
+            padding: 10px;
+            background-color: #ffffff;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Claude Code Integration</h1>
+        
+        <div class="api-key-section">
+            <h3>接続状態</h3>
+            <button onclick="testConnection()">接続テスト</button>
+            <span id="connectionStatus" style="margin-left: 10px;">未接続</span>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div class="file-browser">
+            <h3>📁 ファイルブラウザ</h3>
+            <div>
+                <input type="text" id="currentPath" value="/" readonly>
+                <button onclick="refreshDirectory()">更新</button>
+                <button onclick="createNewFile()">新規ファイル</button>
+                <button onclick="deleteSelectedFile()">削除</button>
+            </div>
+            <ul id="fileList" class="file-list"></ul>
+        </div>
+
+        <div class="editor-section">
+            <div class="editor-header">
+                <span id="currentFile">ファイルを選択してください</span>
+                <div>
+                    <button onclick="saveFile()" id="saveButton" disabled>保存 (Ctrl+S)</button>
+                    <button onclick="reloadFile()" id="reloadButton" disabled>再読み込み</button>
+                </div>
+            </div>
+            <textarea id="editor" placeholder="ファイルを選択するか、新規作成してください..."></textarea>
+        </div>
+
+        <div class="command-section">
+            <h3>🛠️ コマンド実行</h3>
+            <input type="text" id="command" placeholder="実行するコマンド (ls, pwd, echo, node, npm, git status)">
+            <button onclick="executeCommand()">実行</button>
+            <pre id="commandOutput" style="background-color: #f8f8f8; padding: 10px; border-radius: 4px; display: none;"></pre>
+        </div>
+    </div>
+
+    <script>
+        let currentFilePath = null;
+        let apiKey = 'default-api-key';
+
+        // APIキーの取得（認証無効時は不要）
+        function getApiKey() {
+            return '';
+        }
+
+        // ステータス表示
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+            
+            if (type !== 'error') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // API呼び出しのヘルパー関数
+        async function apiCall(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': getApiKey(),
+                    ...options.headers
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'API Error');
+            }
+
+            return response.json();
+        }
+
+        // 接続テスト
+        async function testConnection() {
+            try {
+                const result = await apiCall('/api/health');
+                showStatus('接続成功: ' + result.status, 'success');
+                document.getElementById('connectionStatus').textContent = '✅ 接続済み';
+                document.getElementById('connectionStatus').style.color = 'green';
+                refreshDirectory();
+            } catch (error) {
+                showStatus('接続エラー: ' + error.message, 'error');
+                document.getElementById('connectionStatus').textContent = '❌ 接続エラー';
+                document.getElementById('connectionStatus').style.color = 'red';
+            }
+        }
+
+        // ディレクトリの更新
+        async function refreshDirectory() {
+            try {
+                const path = document.getElementById('currentPath').value.replace(/^\//, '');
+                const result = await apiCall(`/api/directory/${path}`);
+                displayFiles(result.files);
+            } catch (error) {
+                showStatus('ディレクトリ読み込みエラー: ' + error.message, 'error');
+            }
+        }
+
+        // ファイル一覧表示
+        function displayFiles(files) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+
+            files.sort((a, b) => {
+                if (a.type !== b.type) {
+                    return a.type === 'directory' ? -1 : 1;
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            files.forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <span class="file-icon">${file.type === 'directory' ? '📁' : '📄'}</span>
+                    <span>${file.name}</span>
+                    <span style="color: #666; font-size: 0.9em; margin-left: auto;">
+                        ${file.type === 'file' ? `${formatSize(file.size)}` : ''}
+                    </span>
+                `;
+                
+                li.onclick = () => {
+                    if (file.type === 'directory') {
+                        const currentPath = document.getElementById('currentPath').value;
+                        const newPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
+                        document.getElementById('currentPath').value = newPath;
+                        refreshDirectory();
+                    } else {
+                        selectFile(file.path);
+                    }
+                };
+                
+                fileList.appendChild(li);
+            });
+        }
+
+        // ファイルサイズのフォーマット
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // ファイル選択
+        async function selectFile(path) {
+            try {
+                // 既存の選択を解除
+                document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+                
+                const result = await apiCall(`/api/files/${path}`);
+                currentFilePath = path;
+                
+                document.getElementById('currentFile').textContent = path;
+                document.getElementById('editor').value = result.content;
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('reloadButton').disabled = false;
+                
+                // 選択したファイルをハイライト
+                const fileItems = document.querySelectorAll('.file-item');
+                fileItems.forEach(item => {
+                    if (item.textContent.includes(path.split('/').pop())) {
+                        item.classList.add('selected');
+                    }
+                });
+                
+                showStatus(`ファイル読み込み完了: ${path}`, 'success');
+            } catch (error) {
+                showStatus('ファイル読み込みエラー: ' + error.message, 'error');
+            }
+        }
+
+        // ファイル保存
+        async function saveFile() {
+            if (!currentFilePath) {
+                showStatus('ファイルが選択されていません', 'error');
+                return;
+            }
+
+            try {
+                const content = document.getElementById('editor').value;
+                await apiCall(`/api/files/${currentFilePath}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ content })
+                });
+                
+                showStatus(`保存完了: ${currentFilePath}`, 'success');
+            } catch (error) {
+                showStatus('保存エラー: ' + error.message, 'error');
+            }
+        }
+
+        // ファイル再読み込み
+        async function reloadFile() {
+            if (currentFilePath) {
+                await selectFile(currentFilePath);
+            }
+        }
+
+        // 新規ファイル作成
+        async function createNewFile() {
+            const fileName = prompt('ファイル名を入力してください:');
+            if (!fileName) return;
+
+            const currentPath = document.getElementById('currentPath').value;
+            const filePath = currentPath === '/' ? fileName : `${currentPath.replace(/^\//, '')}/${fileName}`;
+
+            try {
+                await apiCall(`/api/files/${filePath}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ content: '' })
+                });
+                
+                showStatus(`ファイル作成完了: ${filePath}`, 'success');
+                refreshDirectory();
+                selectFile(filePath);
+            } catch (error) {
+                showStatus('ファイル作成エラー: ' + error.message, 'error');
+            }
+        }
+
+        // ファイル削除
+        async function deleteSelectedFile() {
+            if (!currentFilePath) {
+                showStatus('ファイルが選択されていません', 'error');
+                return;
+            }
+
+            if (!confirm(`本当に ${currentFilePath} を削除しますか？`)) {
+                return;
+            }
+
+            try {
+                await apiCall(`/api/files/${currentFilePath}`, {
+                    method: 'DELETE'
+                });
+                
+                showStatus(`削除完了: ${currentFilePath}`, 'success');
+                currentFilePath = null;
+                document.getElementById('currentFile').textContent = 'ファイルを選択してください';
+                document.getElementById('editor').value = '';
+                document.getElementById('saveButton').disabled = true;
+                document.getElementById('reloadButton').disabled = true;
+                refreshDirectory();
+            } catch (error) {
+                showStatus('削除エラー: ' + error.message, 'error');
+            }
+        }
+
+        // コマンド実行
+        async function executeCommand() {
+            const command = document.getElementById('command').value;
+            if (!command) {
+                showStatus('コマンドを入力してください', 'error');
+                return;
+            }
+
+            try {
+                const result = await apiCall('/api/execute', {
+                    method: 'POST',
+                    body: JSON.stringify({ command })
+                });
+                
+                const output = document.getElementById('commandOutput');
+                output.textContent = result.stdout || result.stderr || '(出力なし)';
+                output.style.display = 'block';
+                
+                showStatus('コマンド実行完了', 'success');
+            } catch (error) {
+                showStatus('コマンド実行エラー: ' + error.message, 'error');
+            }
+        }
+
+        // キーボードショートカット
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveFile();
+            }
+        });
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            testConnection();
+        });
+    </script>
+</body>
+</html>

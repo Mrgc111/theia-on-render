@@ -4,4 +4,9 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile
     plan: starter
+    envVars:
+      - key: ENABLE_AUTH
+        value: false  # 認証を無効化
+      - key: API_PORT
+        value: 3001
     # Docker CMDを使用、他の設定は一切なし
