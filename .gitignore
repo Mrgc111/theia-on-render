@@ -1,0 +1,30 @@
+# Node.js
+node_modules/
+npm-debug.log*
+.npm
+*.log
+
+# Theia関連 (本体のみ、workspaceは含めない)
+src-gen/
+lib/
+.theia/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+
+# Build cache
+.cache/
+dist/
+
+# Coverage reports
+coverage/
+.nyc_output/
