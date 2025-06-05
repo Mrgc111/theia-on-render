@@ -1,28 +1,12 @@
 {
   "name": "theia-on-render",
   "version": "1.0.0",
-  "description": "Lightweight Eclipse Theia IDE on Render",
-  "main": "src-gen/backend/main.js",
-  "scripts": {
-    "clean": "theia clean",
-    "build": "NODE_OPTIONS='--max-old-space-size=6144' theia build --mode development",
-    "start": "theia start --hostname=0.0.0.0 --port=${PORT:-3000} --root-dir=/app/workspace --plugins=local-dir:plugins",
-    "dev": "theia start --hostname=0.0.0.0 --port=3000 --root-dir=./workspace --plugins=local-dir:plugins"
-  },
   "dependencies": {
     "@theia/core": "^1.44.0",
-    "@theia/filesystem": "^1.44.0",
+    "@theia/cli": "^1.44.0",
     "@theia/workspace": "^1.44.0",
     "@theia/navigator": "^1.44.0",
     "@theia/editor": "^1.44.0",
-    "@theia/monaco": "^1.44.0",
-    "@theia/terminal": "^1.44.0",
-    "@theia/messages": "^1.44.0"
-  },
-  "devDependencies": {
-    "@theia/cli": "^1.44.0"
-  },
-  "engines": {
-    "node": ">=16.0.0"
+    "@theia/monaco": "^1.44.0"
   }
 }
