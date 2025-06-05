@@ -4,9 +4,4 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile
     plan: starter
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
-    # DockerのCMDを使用するため、startCommandは指定しない
+    # Docker CMDを使用、他の設定は一切なし

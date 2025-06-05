@@ -1,8 +1,0 @@
-node_modules/
-lib/
-src-gen/
-.theia/
-plugins/
-*.log
-.DS_Store
-.env
