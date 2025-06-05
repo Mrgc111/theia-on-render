@@ -1,4 +1,4 @@
-FROM theiaide/theia:1.44.0
+FROM theiaide/theia:latest
 
 WORKDIR /home/project
 
