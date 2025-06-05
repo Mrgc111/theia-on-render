@@ -6,7 +6,8 @@ RUN apk add --no-cache git bash curl
 
 COPY package*.json ./
 
-RUN npm ci --only=production --no-optional && \
+# npm ci の代わりに npm install を使用
+RUN npm install --production --no-optional && \
     npm cache clean --force
 
 COPY . .
