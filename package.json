@@ -11,6 +11,11 @@
     "@theia/editor": "^1.44.0",
     "@theia/monaco": "^1.44.0"
   },
+  "scripts": {
+    "build": "theia build",
+    "start": "theia start",
+    "watch": "theia build --watch"
+  },
   "theiaExtensions": [
     "@theia/core",
     "@theia/filesystem", 

@@ -1,4 +1,4 @@
-# 確実に動作するTheia自前ビルド版
+# 確実にビルドするTheia Dockerfile
 FROM node:18-bullseye
 
 WORKDIR /app
@@ -12,20 +12,24 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Theiaを直接グローバルインストール
-RUN npm install -g @theia/cli
-
-# 作業ディレクトリでTheiaアプリケーション作成
+# package.jsonをコピーして依存関係インストール
 COPY package.json .
 RUN npm install
+
+# 全ファイルをコピー
+COPY . .
 
 # ワークスペース作成
 RUN mkdir -p /app/workspace
 
-COPY workspace/ /app/workspace/
+# 重要：Theiaをビルド
+RUN npm run build || npx theia build
+
+# ビルド成果物の確認
+RUN ls -la src-gen/ || echo "src-gen not found, trying alternative approach"
 
 # ポート公開
 EXPOSE 3000
 
-# Theiaを直接起動（ビルド済みパッケージを使用）
-CMD ["npx", "theia", "start", "/app/workspace", "--hostname=0.0.0.0", "--port=3000"]
+# 複数の起動方法を試行
+CMD ["sh", "-c", "if [ -f src-gen/backend/main.js ]; then node src-gen/backend/main.js --hostname=0.0.0.0 --port=3000 /app/workspace; else npx theia start /app/workspace --hostname=0.0.0.0 --port=3000; fi"]
