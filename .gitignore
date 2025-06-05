@@ -1,10 +1,12 @@
 # Node.js
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .npm
 *.log
 
-# Theia関連 (本体のみ、workspaceは含めない)
+# Theia自動生成ファイル (触らない)
 src-gen/
 lib/
 .theia/
@@ -25,6 +27,9 @@ Thumbs.db
 .cache/
 dist/
 
-# Coverage reports
-coverage/
-.nyc_output/
+# ワークスペース内の一時ファイルのみ除外
+workspace/.DS_Store
+workspace/node_modules/
+workspace/.env*
+workspace/dist/
+workspace/build/

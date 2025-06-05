@@ -1,36 +1,25 @@
-# Workspace
+# 🎯 Theia IDE Workspace
 
-このフォルダでプロジェクトを作成してください。
+このディレクトリは開発作業領域です。
 
-## 使い方
+## 🚀 クイックスタート
 
-1. Theia IDEが起動したら、このworkspaceフォルダが自動的に開かれます
-2. ここに新しいプロジェクトフォルダを作成してください
-3. 例：
-   - my-web-app/
-   - sample-project/
-   - etc.
+### ファイル操作
+- **新規ファイル**: 右クリック → New File
+- **新規フォルダ**: 右クリック → New Folder
+- **ファイル検索**: `Ctrl + P`
 
-## 例
+### ターミナル
+- **ターミナル起動**: `Ctrl + Shift + ` `
+- **新しいターミナル**: `Ctrl + Shift + 5`
 
+### Git操作
 ```bash
-mkdir my-project
-cd my-project
-npm init -y
-```
+# 初期設定
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
 
-## Theia IDEの基本操作
-
-- **ファイル作成**: 左サイドバーで右クリック → New File
-- **ターミナル**: `Ctrl+Shift+`` (バッククォート)
-- **コマンドパレット**: `F1` または `Ctrl+Shift+P`
-- **ファイル検索**: `Ctrl+P`
-- **全体検索**: `Ctrl+Shift+F`
-
-## 将来的なClaude Code統合
-
-このTheia環境でClaude Codeを使用して：
-- ファイル横断的な分析
-- アーキテクチャレビュー
-- 設計改善提案
-- コード品質向上
+# 基本操作
+git init
+git add .
+git commit -m "Initial commit"
