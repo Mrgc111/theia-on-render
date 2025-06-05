@@ -1,22 +1,15 @@
-FROM node:18-alpine
+FROM theiaide/theia:1.44.0
 
-WORKDIR /app
+WORKDIR /home/project
 
-# 基本パッケージのみ
-RUN apk add --no-cache git bash
+# ワークスペースディレクトリ作成
+RUN mkdir -p workspace
 
-COPY package*.json ./
+# ファイルをコピー
+COPY workspace/ ./workspace/
 
-# 確実にCLIをインストール
-RUN npm install --production --no-optional --ignore-scripts && \
-    npm install -g @theia/cli && \
-    npm cache clean --force
-
-COPY . .
-
-RUN mkdir -p /app/workspace
-
+# ポート公開
 EXPOSE 3000
 
-# より確実な起動方法
-CMD ["theia", "start", "--hostname=0.0.0.0", "--port=3000", "/app/workspace"]
+# Theiaを起動（既にビルド済み）
+CMD ["yarn", "theia", "start", "/home/project/workspace", "--hostname=0.0.0.0", "--port=3000"]
