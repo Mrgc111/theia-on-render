@@ -3,13 +3,13 @@ FROM quay.io/zowe-explorer/theia:latest
 
 # 必要なパッケージをインストール
 USER root
-RUN apt-get update && apt-get install -y \
+RUN apk update && apk add --no-cache \
     curl \
     util-linux \
-    && rm -rf /var/lib/apt/lists/*
+    bash
 
 # Node.jsが含まれているか確認、なければインストール
-RUN which node || (curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && apt-get install -y nodejs)
+RUN which node || apk add --no-cache nodejs npm
 
 # 作業ディレクトリ設定
 WORKDIR /home/project
